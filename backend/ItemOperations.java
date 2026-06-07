@@ -105,7 +105,7 @@ public class ItemOperations {
     
     public static List<Item> getItemsByUser(int userId) {
         List<Item> items = new ArrayList<>();
-        String sql = "SELECT i.*, u.username as owner_name FROM items i JOIN users u ON i.user_id = u.user_id WHERE i.user_id = ? AND i.is_active = TRUE ORDER BY i.created_at DESC";
+        String sql = "SELECT i.*, u.username as owner_name, u.email as owner_email, u.phone as owner_phone FROM items i JOIN users u ON i.user_id = u.user_id WHERE i.user_id = ? AND i.is_active = TRUE ORDER BY i.created_at DESC";
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -125,7 +125,7 @@ public class ItemOperations {
     
     public static List<Item> getAllItems() {
         List<Item> items = new ArrayList<>();
-        String sql = "SELECT i.*, u.username as owner_name FROM items i JOIN users u ON i.user_id = u.user_id WHERE i.is_active = TRUE ORDER BY i.created_at DESC";
+        String sql = "SELECT i.*, u.username as owner_name, u.email as owner_email, u.phone as owner_phone FROM items i JOIN users u ON i.user_id = u.user_id WHERE i.is_active = TRUE ORDER BY i.created_at DESC";
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -187,7 +187,7 @@ public class ItemOperations {
     }
     
     public static Item getItemByTrackingNumber(String trackingNumber) {
-        String sql = "SELECT i.*, u.username as owner_name FROM items i JOIN users u ON i.user_id = u.user_id WHERE i.tracking_number = ? AND i.is_active = TRUE";
+        String sql = "SELECT i.*, u.username as owner_name, u.email as owner_email, u.phone as owner_phone FROM items i JOIN users u ON i.user_id = u.user_id WHERE i.tracking_number = ? AND i.is_active = TRUE";
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -235,6 +235,8 @@ public class ItemOperations {
         item.setActive(rs.getBoolean("is_active"));
         item.setCreatedAt(rs.getTimestamp("created_at"));
         item.setOwnerUsername(rs.getString("owner_name"));
+        item.setReporterEmail(rs.getString("owner_email"));
+        item.setReporterPhone(rs.getString("owner_phone"));
         return item;
     }
 }

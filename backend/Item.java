@@ -21,6 +21,9 @@ public class Item {
     
     private String ownerUsername;
     private String finderUsername;
+    
+    private String reporterEmail;
+    private String reporterPhone;
 
     public Item() {
         this.isActive = true;
@@ -179,6 +182,22 @@ public class Item {
 
     public void setFinderUsername(String finderUsername) {
         this.finderUsername = finderUsername;
+    }
+
+    public String getReporterEmail() {
+        return reporterEmail;
+    }
+
+    public void setReporterEmail(String reporterEmail) {
+        this.reporterEmail = reporterEmail;
+    }
+
+    public String getReporterPhone() {
+        return reporterPhone;
+    }
+
+    public void setReporterPhone(String reporterPhone) {
+        this.reporterPhone = reporterPhone;
     }
 
     public boolean isLost() {

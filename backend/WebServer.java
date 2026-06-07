@@ -30,7 +30,9 @@ public class WebServer {
             HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
             
             server.createContext("/api/login", new LoginHandler());
+            server.createContext("/api/register", new RegisterHandler());
             server.createContext("/api/items", new ItemsHandler());
+            server.createContext("/api/items/action", new ItemActionHandler());
             server.createContext("/", new StaticFileHandler());
             
             server.setExecutor(null); // creates a default executor
@@ -75,6 +77,52 @@ public class WebServer {
         }
     }
 
+    static class RegisterHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if ("POST".equals(exchange.getRequestMethod())) {
+                try {
+                    InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8);
+                    Map<String, String> data = gson.fromJson(isr, Map.class);
+                    
+                    String username = data.get("username");
+                    String password = data.get("password");
+                    String email = data.get("email");
+                    String phone = data.get("phone");
+                    String role = data.getOrDefault("role", "STUDENT"); // default to STUDENT
+                    
+                    User user = UserOperations.registerUser(username, password, email, phone, role);
+                    
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    if (user != null) {
+                        String response = gson.toJson(user);
+                        byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                        exchange.sendResponseHeaders(200, bytes.length);
+                        OutputStream os = exchange.getResponseBody();
+                        os.write(bytes);
+                        os.close();
+                    } else {
+                        String response = "{\"error\":\"Registration failed. User may already exist or data is invalid.\"}";
+                        byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                        exchange.sendResponseHeaders(400, bytes.length);
+                        OutputStream os = exchange.getResponseBody();
+                        os.write(bytes);
+                        os.close();
+                    }
+                } catch (Exception e) {
+                    String response = "{\"error\":\"Internal server error.\"}";
+                    byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                    exchange.sendResponseHeaders(500, bytes.length);
+                    OutputStream os = exchange.getResponseBody();
+                    os.write(bytes);
+                    os.close();
+                }
+            } else {
+                exchange.sendResponseHeaders(405, -1);
+            }
+        }
+    }
+
     static class ItemsHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -87,6 +135,57 @@ public class WebServer {
                 OutputStream os = exchange.getResponseBody();
                 os.write(bytes);
                 os.close();
+            } else {
+                exchange.sendResponseHeaders(405, -1);
+            }
+        }
+    }
+
+    static class ItemActionHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if ("POST".equals(exchange.getRequestMethod())) {
+                try {
+                    InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8);
+                    Map<String, Object> data = gson.fromJson(isr, Map.class);
+                    
+                    String action = (String) data.get("action");
+                    int itemId = ((Number) data.get("itemId")).intValue();
+                    int adminId = ((Number) data.get("adminId")).intValue();
+
+                    boolean success = false;
+                    
+                    if ("DELETE".equals(action)) {
+                        success = ItemOperations.deleteItem(itemId);
+                    } else if ("UPDATE_STATUS".equals(action)) {
+                        String newStatus = (String) data.get("status");
+                        success = ItemOperations.updateItemStatus(itemId, newStatus, adminId);
+                    }
+                    
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    if (success) {
+                        String response = "{\"success\":true}";
+                        byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                        exchange.sendResponseHeaders(200, bytes.length);
+                        OutputStream os = exchange.getResponseBody();
+                        os.write(bytes);
+                        os.close();
+                    } else {
+                        String response = "{\"error\":\"Action failed.\"}";
+                        byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                        exchange.sendResponseHeaders(400, bytes.length);
+                        OutputStream os = exchange.getResponseBody();
+                        os.write(bytes);
+                        os.close();
+                    }
+                } catch (Exception e) {
+                    String response = "{\"error\":\"Internal server error.\"}";
+                    byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                    exchange.sendResponseHeaders(500, bytes.length);
+                    OutputStream os = exchange.getResponseBody();
+                    os.write(bytes);
+                    os.close();
+                }
             } else {
                 exchange.sendResponseHeaders(405, -1);
             }
