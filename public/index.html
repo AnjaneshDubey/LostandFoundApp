@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Lost & Found Tracker</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login View -->
+        <div id="login-view" class="view active">
+            <div class="glass-card login-card">
+                <div class="logo">🔍</div>
+                <h1>Welcome Back</h1>
+                <p>Lost & Found Tracker</p>
+                <form id="login-form">
+                    <div class="input-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" required placeholder="Enter your username">
+                    </div>
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" required placeholder="Enter your password">
+                    </div>
+                    <div id="login-error" class="error-msg"></div>
+                    <button type="submit" class="btn primary-btn">Login</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="view">
+            <nav class="glass-nav">
+                <div class="nav-brand">🔍 FindStuff</div>
+                <div class="nav-user">
+                    <span id="user-greeting">Hello, User</span>
+                    <button id="logout-btn" class="btn outline-btn">Logout</button>
+                </div>
+            </nav>
+            
+            <main class="dashboard-content">
+                <div class="header-actions">
+                    <h2>Lost & Found Items</h2>
+                    <!-- For simplicity, reporting is not fully implemented in UI yet -->
+                </div>
+                
+                <div class="items-grid" id="items-grid">
+                    <!-- Items will be injected here via JS -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
