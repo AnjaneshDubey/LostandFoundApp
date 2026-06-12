@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>College Lost & Found Tracker</title>
+    <title>Find Stuff - Lost & Found Tracker</title>
+    <link rel="icon" type="image/jpeg" href="favicon.jpg">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -14,7 +15,7 @@
             <div class="glass-card auth-card">
                 <div class="logo">🔍</div>
                 <h1>Welcome Back</h1>
-                <p>Lost & Found Tracker</p>
+                <p>Find Stuff</p>
                 <form id="login-form">
                     <div class="input-group">
                         <label for="login-username">Username</label>
@@ -57,10 +58,12 @@
                         <input type="password" id="reg-password" required placeholder="Create a password">
                     </div>
                     <div class="input-group">
-                        <label for="reg-role">Role</label>
-                        <select id="reg-role" required>
-                            <option value="STUDENT">Student</option>
-                            <option value="ADMIN">Admin</option>
+                        <label for="reg-college">College / University</label>
+                        <select id="reg-college" required>
+                            <option value="G.L Bajaj Institute of Technology and Management, Greater Noida">G.L Bajaj Institute of Technology and Management, Greater Noida</option>
+                            <option value="Sharda University, Greater Noida">Sharda University, Greater Noida</option>
+                            <option value="Amity University, Noida">Amity University, Noida</option>
+                            <option value="Galgotias University, Greater Noida">Galgotias University, Greater Noida</option>
                         </select>
                     </div>
                     <div id="register-error" class="error-msg"></div>
@@ -73,27 +76,140 @@
         </div>
 
         <!-- Dashboard View -->
-        <div id="dashboard-view" class="view">
-            <nav class="glass-nav">
-                <div class="nav-brand">🔍 FindStuff</div>
-                <div class="nav-user">
-                    <span id="user-greeting" class="user-greeting">Hello, User</span>
-                    <button id="logout-btn" class="btn outline-btn">Logout</button>
-                </div>
-            </nav>
-            
-            <main class="dashboard-content">
-                <div class="header-actions">
-                    <h2>Lost & Found Items</h2>
-                    <div class="search-container">
-                        <input type="text" id="search-input" placeholder="Search items, categories, or tracking #..." class="search-input">
+        <div class="dashboard-view view" id="dashboard-view">
+            <header class="dashboard-header">
+                <div class="header-content">
+                    <div class="header-title-group">
+                        <img src="logo.jpg" alt="Logo" class="brand-logo">
+                        <div class="title-text-group">
+                            <h1>Find Stuff</h1>
+                            <p id="user-greeting" class="user-greeting"></p>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <div class="profile-menu" id="profile-menu">
+                            <button id="profile-btn" class="hamburger-btn" title="Menu">
+                                ☰
+                            </button>
+                            <div id="profile-dropdown" class="dropdown-content">
+                                <a href="#" id="menu-profile">My Profile</a>
+                                <a href="#" id="menu-settings">Settings</a>
+                                <a href="#" id="menu-contact">Contact Us</a>
+                                <div class="dropdown-divider"></div>
+                                <a href="#" id="logout-btn" style="color: #F44336;">Logout</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </header>
+            
+            <main class="dashboard-content">
+                <nav class="dashboard-nav">
+                    <div class="nav-left">
+                        <h2 id="dashboard-title">Lost & Found Items</h2>
+                    </div>
+                    <div class="nav-right">
+                        <div class="search-container">
+                            <input type="text" id="search-input" placeholder="Search items..." class="search-input">
+                        </div>
+                        <button id="nav-all-items" class="btn nav-btn active">All Items</button>
+                        <button id="nav-my-items" class="btn nav-btn">My Items</button>
+                        <button id="nav-report-item" class="btn primary-btn">Report Item</button>
+                    </div>
+                </nav>
                 
                 <div class="items-grid" id="items-grid">
                     <!-- Items will be injected here via JS -->
                 </div>
             </main>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <div id="item-modal" class="modal-overlay">
+        <div class="modal-content glass-card">
+            <button type="button" class="modal-close-btn" id="modal-close-x">&times;</button>
+            <h3 id="modal-title">Report Item</h3>
+            <form id="item-form">
+                <input type="hidden" id="modal-item-id">
+                <div class="input-group" id="modal-status-group">
+                    <label>Type</label>
+                    <select id="modal-status">
+                        <option value="LOST">I Lost this item</option>
+                        <option value="FOUND">I Found this item</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Item Name</label>
+                    <input type="text" id="modal-name" required>
+                </div>
+                <div class="input-group">
+                    <label>Category</label>
+                    <select id="modal-category" required>
+                        <option value="ELECTRONICS">Electronics</option>
+                        <option value="BOOKS">Books</option>
+                        <option value="PERSONAL">Personal</option>
+                        <option value="DOCUMENTS">Documents</option>
+                        <option value="ACCESSORIES">Accessories</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Location</label>
+                    <input type="text" id="modal-location" required>
+                </div>
+                <div class="input-group">
+                    <label>Description</label>
+                    <textarea id="modal-description" rows="3" required></textarea>
+                </div>
+                <div class="input-group">
+                    <label>Item Image (Optional)</label>
+                    <input type="file" id="modal-image" accept="image/*" class="file-input">
+                </div>
+                <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn" id="modal-cancel" style="flex: 1; background: #f5f5f5;">Cancel</button>
+                    <button type="submit" class="btn primary-btn" style="flex: 1;">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="profile-modal" class="modal-overlay">
+        <div class="modal-content glass-card">
+            <button type="button" class="modal-close-btn" id="profile-close-x">&times;</button>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <input type="file" id="profile-avatar-upload" accept="image/*" style="display: none;">
+                <div style="display: inline-block; position: relative; cursor: pointer;" onclick="document.getElementById('profile-avatar-upload').click();">
+                    <div class="profile-avatar-large" id="profile-avatar-container" title="Click to upload avatar">
+                        <span id="profile-avatar-initials">U</span>
+                    </div>
+                    <div class="avatar-edit-icon">📷</div>
+                </div>
+                <h3 id="profile-title" style="margin-top: 10px; margin-bottom: 5px;">My Profile</h3>
+                <p id="profile-role-badge" class="item-status status-FOUND" style="display: inline-block;">STUDENT</p>
+            </div>
+            <form id="profile-form">
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="profile-username" required>
+                </div>
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="profile-email" required>
+                </div>
+                <div class="input-group">
+                    <label>Phone Number</label>
+                    <input type="text" id="profile-phone">
+                </div>
+                <div class="input-group">
+                    <label>College</label>
+                    <textarea id="profile-college" required disabled rows="2" style="resize: none; padding: 10px 14px; width: 100%; border: 1px solid #ddd; border-radius: 8px; font-family: inherit;"></textarea>
+                </div>
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button type="submit" class="primary-btn" style="width: 100%;">Update Profile</button>
+                </div>
+            </form>
         </div>
     </div>
 

@@ -7,10 +7,12 @@ public class Item {
     private int itemId;
     private String trackingNumber;
     private int userId;
+    private String collegeName;
     private String itemName;
     private String description;
     private String category;
     private String location;
+    private String imageBase64;
     private Date dateLost;
     private Date dateFound;
     private String status;
@@ -44,7 +46,7 @@ public class Item {
     }
 
     public Item(int itemId, String trackingNumber, String itemName, String description, 
-                String category, String location, String status, String ownerUsername) {
+                String category, String location, String status, String ownerUsername, String collegeName, String imageBase64) {
         this.itemId = itemId;
         this.trackingNumber = trackingNumber;
         this.itemName = itemName;
@@ -53,6 +55,8 @@ public class Item {
         this.location = location;
         this.status = status;
         this.ownerUsername = ownerUsername;
+        this.collegeName = collegeName;
+        this.imageBase64 = imageBase64;
         this.isActive = true;
     }
 
@@ -78,6 +82,14 @@ public class Item {
 
     public void setUserId(int userId) {
         this.userId = userId;
+    }
+
+    public String getCollegeName() {
+        return collegeName;
+    }
+
+    public void setCollegeName(String collegeName) {
+        this.collegeName = collegeName;
     }
 
     public String getItemName() {
@@ -110,6 +122,14 @@ public class Item {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getImageBase64() {
+        return imageBase64;
+    }
+
+    public void setImageBase64(String imageBase64) {
+        this.imageBase64 = imageBase64;
     }
 
     public Date getDateLost() {

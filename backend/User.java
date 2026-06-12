@@ -9,6 +9,8 @@ public class User {
     private String email;
     private String phone;
     private String role;
+    private String collegeName;
+    private String avatarBase64;
     private boolean isActive;
     private int failedLoginAttempts;
     private Timestamp createdAt;
@@ -28,13 +30,15 @@ public class User {
         this.role = role;
     }
 
-    public User(int userId, String username, String email, String phone, String role, boolean isActive) {
+    public User(int userId, String username, String email, String phone, String role, boolean isActive, String collegeName, String avatarBase64) {
         this.userId = userId;
         this.username = username;
         this.email = email;
         this.phone = phone;
         this.role = role;
         this.isActive = isActive;
+        this.collegeName = collegeName;
+        this.avatarBase64 = avatarBase64;
     }
 
     public int getUserId() {
@@ -83,6 +87,22 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getCollegeName() {
+        return collegeName;
+    }
+
+    public void setCollegeName(String collegeName) {
+        this.collegeName = collegeName;
+    }
+
+    public String getAvatarBase64() {
+        return avatarBase64;
+    }
+
+    public void setAvatarBase64(String avatarBase64) {
+        this.avatarBase64 = avatarBase64;
     }
 
     public boolean isActive() {

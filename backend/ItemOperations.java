@@ -19,7 +19,7 @@ public class ItemOperations {
     }
     
     public static Item reportLostItem(int userId, String itemName, String description, 
-                                     String category, String location, Date dateLost) {
+                                     String category, String location, Date dateLost, String collegeName, String imageBase64) {
         if (!ValidationUtil.isValidItemName(itemName)) {
             System.out.println("❌ " + ValidationUtil.getValidationError("itemname", itemName));
             return null;
@@ -34,7 +34,7 @@ public class ItemOperations {
         }
         
         String trackingNumber = generateTrackingNumber();
-        String sql = "INSERT INTO items (tracking_number, user_id, item_name, description, category, location, date_lost, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'LOST')";
+        String sql = "INSERT INTO items (tracking_number, user_id, item_name, description, category, location, date_lost, status, college_name, image_data) VALUES (?, ?, ?, ?, ?, ?, ?, 'LOST', ?, ?)";
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -46,6 +46,8 @@ public class ItemOperations {
             pstmt.setString(5, category.toUpperCase());
             pstmt.setString(6, location);
             pstmt.setDate(7, dateLost);
+            pstmt.setString(8, collegeName);
+            pstmt.setString(9, imageBase64);
             
             int affectedRows = pstmt.executeUpdate();
             
@@ -54,7 +56,7 @@ public class ItemOperations {
                     if (generatedKeys.next()) {
                         int itemId = generatedKeys.getInt(1);
                         System.out.println("✅ Lost item reported! Tracking Number: " + trackingNumber);
-                        return new Item(itemId, trackingNumber, itemName, description, category, location, "LOST", null);
+                        return new Item(itemId, trackingNumber, itemName, description, category, location, "LOST", null, collegeName, imageBase64);
                     }
                 }
             }
@@ -65,14 +67,14 @@ public class ItemOperations {
     }
     
     public static Item reportFoundItem(int userId, String itemName, String description, 
-                                      String category, String location, Date dateFound) {
+                                      String category, String location, Date dateFound, String collegeName, String imageBase64) {
         if (!ValidationUtil.isValidItemName(itemName)) {
             System.out.println("❌ " + ValidationUtil.getValidationError("itemname", itemName));
             return null;
         }
         
         String trackingNumber = generateTrackingNumber();
-        String sql = "INSERT INTO items (tracking_number, user_id, item_name, description, category, location, date_found, status, found_by) VALUES (?, ?, ?, ?, ?, ?, ?, 'FOUND', ?)";
+        String sql = "INSERT INTO items (tracking_number, user_id, item_name, description, category, location, date_found, status, found_by, college_name, image_data) VALUES (?, ?, ?, ?, ?, ?, ?, 'FOUND', ?, ?, ?)";
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -85,6 +87,8 @@ public class ItemOperations {
             pstmt.setString(6, location);
             pstmt.setDate(7, dateFound);
             pstmt.setInt(8, userId);
+            pstmt.setString(9, collegeName);
+            pstmt.setString(10, imageBase64);
             
             int affectedRows = pstmt.executeUpdate();
             
@@ -93,7 +97,7 @@ public class ItemOperations {
                     if (generatedKeys.next()) {
                         int itemId = generatedKeys.getInt(1);
                         System.out.println("✅ Found item reported! Tracking Number: " + trackingNumber);
-                        return new Item(itemId, trackingNumber, itemName, description, category, location, "FOUND", null);
+                        return new Item(itemId, trackingNumber, itemName, description, category, location, "FOUND", null, collegeName, imageBase64);
                     }
                 }
             }
@@ -123,17 +127,20 @@ public class ItemOperations {
         return items;
     }
     
-    public static List<Item> getAllItems() {
+    public static List<Item> getAllItems(String collegeName) {
         List<Item> items = new ArrayList<>();
-        String sql = "SELECT i.*, u.username as owner_name, u.email as owner_email, u.phone as owner_phone FROM items i JOIN users u ON i.user_id = u.user_id WHERE i.is_active = TRUE ORDER BY i.created_at DESC";
+        String sql = "SELECT i.*, u.username as owner_name, u.email as owner_email, u.phone as owner_phone FROM items i JOIN users u ON i.user_id = u.user_id WHERE i.is_active = TRUE AND i.college_name = ? ORDER BY i.created_at DESC";
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, collegeName);
+            ResultSet rs = pstmt.executeQuery();
             
             while (rs.next()) {
                 items.add(createItemFromResultSet(rs));
             }
+            rs.close();
         } catch (SQLException e) {
             System.out.println("❌ Error fetching items: " + e.getMessage());
         }
@@ -167,6 +174,27 @@ public class ItemOperations {
         return false;
     }
     
+    public static boolean updateItem(int itemId, String itemName, String description, String category, String location, String imageBase64) {
+        if (!ValidationUtil.isValidItemName(itemName)) {
+            System.out.println("❌ Invalid item name!");
+            return false;
+        }
+        String sql = "UPDATE items SET item_name = ?, description = ?, category = ?, location = ?, image_data = ? WHERE item_id = ?";
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, itemName);
+            pstmt.setString(2, description);
+            pstmt.setString(3, category.toUpperCase());
+            pstmt.setString(4, location);
+            pstmt.setString(5, imageBase64);
+            pstmt.setInt(6, itemId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.out.println("❌ Error updating item: " + e.getMessage());
+        }
+        return false;
+    }
+
     public static boolean deleteItem(int itemId) {
         String sql = "UPDATE items SET is_active = FALSE WHERE item_id = ?";
         
@@ -224,6 +252,8 @@ public class ItemOperations {
         item.setItemId(rs.getInt("item_id"));
         item.setTrackingNumber(rs.getString("tracking_number"));
         item.setUserId(rs.getInt("user_id"));
+        item.setCollegeName(rs.getString("college_name"));
+        item.setImageBase64(rs.getString("image_data"));
         item.setItemName(rs.getString("item_name"));
         item.setDescription(rs.getString("description"));
         item.setCategory(rs.getString("category"));

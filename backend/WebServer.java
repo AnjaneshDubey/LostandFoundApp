@@ -31,6 +31,7 @@ public class WebServer {
             
             server.createContext("/api/login", new LoginHandler());
             server.createContext("/api/register", new RegisterHandler());
+            server.createContext("/api/user/action", new UserActionHandler());
             server.createContext("/api/items", new ItemsHandler());
             server.createContext("/api/items/action", new ItemActionHandler());
             server.createContext("/", new StaticFileHandler());
@@ -89,9 +90,10 @@ public class WebServer {
                     String password = data.get("password");
                     String email = data.get("email");
                     String phone = data.get("phone");
-                    String role = data.getOrDefault("role", "STUDENT"); // default to STUDENT
+                    String role = "STUDENT"; // Always force STUDENT for new registrations via UI
+                    String collegeName = data.getOrDefault("collegeName", "G.L Bajaj Institute of Technology and Management, Greater Noida");
                     
-                    User user = UserOperations.registerUser(username, password, email, phone, role);
+                    User user = UserOperations.registerUser(username, password, email, phone, role, collegeName);
                     
                     exchange.getResponseHeaders().set("Content-Type", "application/json");
                     if (user != null) {
@@ -123,11 +125,103 @@ public class WebServer {
         }
     }
 
+    static class UserActionHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if ("POST".equals(exchange.getRequestMethod())) {
+                try {
+                    InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8);
+                    Map<String, Object> data = gson.fromJson(isr, Map.class);
+                    
+                    String action = (String) data.get("action");
+                    
+                    if ("UPDATE_PROFILE".equals(action)) {
+                        int userId = ((Number) data.get("userId")).intValue();
+                        String username = (String) data.get("username");
+                        String email = (String) data.get("email");
+                        String phone = (String) data.get("phone");
+                        String collegeName = (String) data.get("collegeName");
+                        
+                        String error = UserOperations.updateUserProfile(userId, username, email, phone, collegeName);
+                        
+                        exchange.getResponseHeaders().set("Content-Type", "application/json");
+                        if (error == null) {
+                            User updatedUser = UserOperations.getUserById(userId);
+                            String response = gson.toJson(updatedUser);
+                            byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                            exchange.sendResponseHeaders(200, bytes.length);
+                            OutputStream os = exchange.getResponseBody();
+                            os.write(bytes);
+                            os.close();
+                        } else {
+                            String response = "{\"error\":\"" + error.replace("\"", "\\\"") + "\"}";
+                            byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                            exchange.sendResponseHeaders(400, bytes.length);
+                            OutputStream os = exchange.getResponseBody();
+                            os.write(bytes);
+                            os.close();
+                        }
+                    } else if ("UPDATE_AVATAR".equals(action)) {
+                        int userId = ((Number) data.get("userId")).intValue();
+                        String avatarBase64 = (String) data.get("avatarBase64");
+                        
+                        boolean success = UserOperations.updateUserAvatar(userId, avatarBase64);
+                        
+                        exchange.getResponseHeaders().set("Content-Type", "application/json");
+                        if (success) {
+                            User updatedUser = UserOperations.getUserById(userId);
+                            String response = gson.toJson(updatedUser);
+                            byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                            exchange.sendResponseHeaders(200, bytes.length);
+                            OutputStream os = exchange.getResponseBody();
+                            os.write(bytes);
+                            os.close();
+                        } else {
+                            String response = "{\"error\":\"Failed to update avatar.\"}";
+                            byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                            exchange.sendResponseHeaders(500, bytes.length);
+                            OutputStream os = exchange.getResponseBody();
+                            os.write(bytes);
+                            os.close();
+                        }
+                    } else {
+                        String response = "{\"error\":\"Unknown action\"}";
+                        byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                        exchange.sendResponseHeaders(400, bytes.length);
+                        OutputStream os = exchange.getResponseBody();
+                        os.write(bytes);
+                        os.close();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    String response = "{\"error\":\"Internal server error.\"}";
+                    byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                    exchange.sendResponseHeaders(500, bytes.length);
+                    OutputStream os = exchange.getResponseBody();
+                    os.write(bytes);
+                    os.close();
+                }
+            } else {
+                exchange.sendResponseHeaders(405, -1);
+            }
+        }
+    }
+
     static class ItemsHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             if ("GET".equals(exchange.getRequestMethod())) {
-                List<Item> items = ItemOperations.getAllItems();
+                String query = exchange.getRequestURI().getQuery();
+                String collegeName = "G.L Bajaj Institute of Technology and Management, Greater Noida";
+                if (query != null) {
+                    for (String param : query.split("&")) {
+                        if (param.startsWith("college=")) {
+                            collegeName = java.net.URLDecoder.decode(param.substring(8), StandardCharsets.UTF_8.name());
+                            break;
+                        }
+                    }
+                }
+                List<Item> items = ItemOperations.getAllItems(collegeName);
                 String response = gson.toJson(items);
                 byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
@@ -150,16 +244,41 @@ public class WebServer {
                     Map<String, Object> data = gson.fromJson(isr, Map.class);
                     
                     String action = (String) data.get("action");
-                    int itemId = ((Number) data.get("itemId")).intValue();
-                    int adminId = ((Number) data.get("adminId")).intValue();
-
                     boolean success = false;
                     
                     if ("DELETE".equals(action)) {
+                        int itemId = ((Number) data.get("itemId")).intValue();
                         success = ItemOperations.deleteItem(itemId);
                     } else if ("UPDATE_STATUS".equals(action)) {
+                        int itemId = ((Number) data.get("itemId")).intValue();
+                        int adminId = ((Number) data.get("adminId")).intValue();
                         String newStatus = (String) data.get("status");
                         success = ItemOperations.updateItemStatus(itemId, newStatus, adminId);
+                    } else if ("REPORT".equals(action)) {
+                        String status = (String) data.get("status");
+                        String itemName = (String) data.get("itemName");
+                        String description = (String) data.get("description");
+                        String category = (String) data.get("category");
+                        String location = (String) data.get("location");
+                        String collegeName = (String) data.get("collegeName");
+                        String imageBase64 = (String) data.get("imageBase64");
+                        int userId = ((Number) data.get("userId")).intValue();
+                        long dateMillis = ((Number) data.get("date")).longValue();
+                        java.sql.Date sqlDate = new java.sql.Date(dateMillis);
+                        
+                        if ("LOST".equals(status)) {
+                            success = ItemOperations.reportLostItem(userId, itemName, description, category, location, sqlDate, collegeName, imageBase64) != null;
+                        } else {
+                            success = ItemOperations.reportFoundItem(userId, itemName, description, category, location, sqlDate, collegeName, imageBase64) != null;
+                        }
+                    } else if ("EDIT".equals(action)) {
+                        int itemId = ((Number) data.get("itemId")).intValue();
+                        String itemName = (String) data.get("itemName");
+                        String description = (String) data.get("description");
+                        String category = (String) data.get("category");
+                        String location = (String) data.get("location");
+                        String imageBase64 = (String) data.get("imageBase64");
+                        success = ItemOperations.updateItem(itemId, itemName, description, category, location, imageBase64);
                     }
                     
                     exchange.getResponseHeaders().set("Content-Type", "application/json");
@@ -179,6 +298,7 @@ public class WebServer {
                         os.close();
                     }
                 } catch (Exception e) {
+                    e.printStackTrace();
                     String response = "{\"error\":\"Internal server error.\"}";
                     byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
                     exchange.sendResponseHeaders(500, bytes.length);
@@ -206,6 +326,9 @@ public class WebServer {
                 if (path.endsWith(".html")) contentType = "text/html";
                 else if (path.endsWith(".css")) contentType = "text/css";
                 else if (path.endsWith(".js")) contentType = "application/javascript";
+                else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) contentType = "image/jpeg";
+                else if (path.endsWith(".png")) contentType = "image/png";
+                else if (path.endsWith(".ico")) contentType = "image/x-icon";
                 
                 exchange.getResponseHeaders().set("Content-Type", contentType);
                 exchange.sendResponseHeaders(200, file.length());
