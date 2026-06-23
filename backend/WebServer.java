@@ -13,21 +13,44 @@ import java.util.List;
 import java.util.Map;
 
 public class WebServer {
-    private static final int PORT = 8080;
     private static final Gson gson = new Gson();
 
     public static void start() {
+        int port = 8080;
+        String envPort = System.getenv("PORT");
+        if (envPort != null && !envPort.isEmpty()) {
+            try {
+                port = Integer.parseInt(envPort);
+            } catch (NumberFormatException e) {
+                System.out.println("⚠️ Invalid PORT environment variable. Defaulting to 8080.");
+            }
+        }
+
         try {
-            // Initialize database schema once
-            try (java.sql.Connection c = java.sql.DriverManager.getConnection("jdbc:h2:mem:lostfound_db;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
-                 java.sql.Statement s = c.createStatement()) {
-                s.execute("RUNSCRIPT FROM 'schema.sql'");
-                System.out.println("✅ Database schema initialized.");
+            // Test database connection and initialize schema if using H2
+            try {
+                java.util.Properties props = new java.util.Properties();
+                try (FileInputStream fis = new FileInputStream("database.properties")) {
+                    props.load(fis);
+                }
+                String url = props.getProperty("db.url");
+                
+                // Initialize DatabaseConnection singleton to verify connection
+                DatabaseConnection dbConn = DatabaseConnection.getInstance();
+
+                if (url != null && url.startsWith("jdbc:h2:")) {
+                    try (java.sql.Statement s = dbConn.getConnection().createStatement()) {
+                        s.execute("RUNSCRIPT FROM 'schema.sql'");
+                        System.out.println("✅ Database schema initialized for H2 database.");
+                    }
+                } else {
+                    System.out.println("✅ Using persistent database. Skipping H2 schema initialization script.");
+                }
             } catch (Exception e) {
-                System.out.println("ℹ️ Database already initialized or schema error: " + e.getMessage());
+                System.out.println("❌ Database initialization error: " + e.getMessage());
             }
 
-            HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
+            HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
             
             server.createContext("/api/login", new LoginHandler());
             server.createContext("/api/register", new RegisterHandler());
@@ -38,7 +61,7 @@ public class WebServer {
             
             server.setExecutor(null); // creates a default executor
             server.start();
-            System.out.println("✅ Web Server started at http://localhost:" + PORT);
+            System.out.println("✅ Web Server started at http://localhost:" + port);
         } catch (IOException e) {
             e.printStackTrace();
         }
